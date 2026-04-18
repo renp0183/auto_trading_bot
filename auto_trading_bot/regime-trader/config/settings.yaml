@@ -1,0 +1,116 @@
+# ============================================================
+# Regime Trader — Master Configuration
+# ============================================================
+# All runtime parameters live here. Override via environment
+# variables or by editing this file directly.
+# ============================================================
+
+# ------------------------------------------------------------
+# BROKER
+# ------------------------------------------------------------
+broker:
+  paper_trading: true                  # true = paper account, false = live
+  symbols:
+    - GDX                              # Gold miners ETF
+    - XLK                              # Tech sector ETF
+    - XLE                              # Energy sector ETF
+    - TQQQ                             # 3× Nasdaq (high-vol, used when TQQQ's own HMM is aggressive)
+    - SPXL                             # 3× S&P 500
+    - TLT                              # 20yr Treasury bond ETF (replaces NUGT — NUGT≈3×GDX, ≥0.95 corr)
+  timeframe: "1Day"                    # Bar timeframe: 1Min, 5Min, 1Hour, 1Day
+  feed_dead_timeout_seconds: 93600     # 26h — daily bars arrive once/day; 2h default would false-alarm
+
+# ------------------------------------------------------------
+# HIDDEN MARKOV MODEL
+# ------------------------------------------------------------
+hmm:
+  n_candidates: [3, 4, 5, 6, 7]       # State counts to evaluate; best by BIC selected
+  n_init: 10                           # Random restarts per candidate (avoid local optima)
+  covariance_type: "full"              # full | diag | spherical | tied
+  min_train_bars: 252                  # Minimum bars required before first fit (~1 year daily)
+  stability_bars: 3                    # Consecutive bars in same regime before confirming
+  flicker_window: 20                   # Look-back window for flicker detection
+  flicker_threshold: 5                 # Max regime changes allowed in flicker_window bars (raised from 4 — 4/20 fired too often on daily bars)
+  min_confidence: 0.55                 # Minimum posterior probability to accept regime label
+
+# ------------------------------------------------------------
+# REGIME ALLOCATION STRATEGIES
+# ------------------------------------------------------------
+strategy:
+  # Fraction of available capital to deploy per regime
+  low_vol_allocation: 0.95             # Low-volatility (bull) regime — near full deployment
+  mid_vol_allocation_trend: 0.95       # Mid-vol WITH confirmed trend — aggressive
+  mid_vol_allocation_no_trend: 0.60    # Mid-vol WITHOUT trend — reduced exposure
+  high_vol_allocation: 0.40            # High-vol / leveraged ETF regime — reduced raw alloc (ETFs are 3×)
+
+  # Leverage multipliers (applied on top of allocation)
+  low_vol_leverage: 1.25               # Modest leverage in calm markets
+  # mid_vol and high_vol leverage default to 1.0 (no leverage)
+
+  # Rebalancing
+  rebalance_threshold: 0.10            # Drift > 10% from target triggers rebalance
+
+  # Uncertainty scaling
+  uncertainty_size_mult: 0.50          # Position size multiplier when regime confidence is low
+
+  # Indicator windows (also used for trailing stops)
+  atr_window: 14                       # Bars for ATR computation (trailing stops, signal sizing)
+  min_confidence: 0.55                 # Posterior probability below this → uncertainty mode
+
+# ------------------------------------------------------------
+# RISK MANAGEMENT
+# ------------------------------------------------------------
+risk:
+  # Per-trade limits
+  max_risk_per_trade: 0.015            # Max 1.5% of equity risked on any single trade
+  max_single_position: 0.18           # Max 18% of equity in one symbol (3-symbol portfolios)
+
+  # Portfolio limits
+  max_exposure: 0.75                   # Max 75% of equity deployed (3 × 18% + buffer)
+  max_leverage: 1.25                   # Hard cap on gross leverage
+  max_concurrent: 3                    # Max 3 simultaneous positions (one per tier symbol)
+  max_positions_per_vol_tier: 2        # At most 2 concurrent positions from the same vol tier (LowVol/MidVol/HighVol)
+
+  # Activity limits
+  max_daily_trades: 20                 # Circuit breaker on over-trading
+
+  # Drawdown controls
+  daily_dd_reduce: 0.02                # Daily DD > 2% → reduce position sizes 50%
+  daily_dd_halt: 0.03                  # Daily DD > 3% → halt new entries for rest of day
+  weekly_dd_reduce: 0.05               # Weekly DD > 5% → reduce sizes
+  weekly_dd_halt: 0.07                 # Weekly DD > 7% → halt new entries for rest of week
+  max_dd_from_peak: 0.10               # Rolling DD > 10% from equity peak → full halt
+
+# ------------------------------------------------------------
+# BACKTESTING
+# ------------------------------------------------------------
+backtest:
+  slippage_pct: 0.0005                 # 0.05% round-trip slippage estimate
+  initial_capital: 100000              # Starting equity in USD
+  train_window: 252                    # HMM training window in bars (~1 year)
+  test_window: 126                     # Out-of-sample test window (~6 months)
+  step_size: 126                       # Walk-forward step in bars (~6 months)
+  risk_free_rate: 0.045                # Annual risk-free rate for Sharpe calculation
+
+# ------------------------------------------------------------
+# INTRADAY EXECUTION ENGINE
+# ------------------------------------------------------------
+intraday:
+  enabled: true                        # false = daily-only mode (original behaviour)
+  timeframe: "5Min"                    # 5Min | 15Min — intraday bar width
+  lookback_minutes: 600                # REST back-fill on startup (~3 trading sessions)
+  poll_interval_seconds: 30            # How often to poll REST for new intraday bars
+  min_bars: 60                         # Warm-up bars before any signal fires
+  cooldown_bars: 3                     # Bars between entries per symbol (3×5m = 15 min)
+  no_entry_minutes_before_close: 15    # Cut-off before 4pm ET — no new intraday entries
+  max_trades_per_day_per_symbol: 3     # Hard limit on intraday entries per symbol/day
+
+# ------------------------------------------------------------
+# MONITORING
+# ------------------------------------------------------------
+monitoring:
+  dashboard_refresh_seconds: 5         # How often the live terminal dashboard refreshes
+  alert_rate_limit_minutes: 15         # Minimum minutes between repeated alerts
+  web_dashboard_port: 8080             # Browser dashboard port — http://<server-ip>:8080
+  web_dashboard_host: "0.0.0.0"       # Bind address — 0.0.0.0 allows LAN/remote access
+111

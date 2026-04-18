@@ -1,0 +1,45 @@
+[Unit]
+Description=Regime Trader — HMM Algorithmic Trading Bot
+Documentation=https://github.com/your-repo/regime-trader
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# Change 'ubuntu' to 'opc' if you are on Oracle Linux (not Ubuntu)
+User=ubuntu
+Group=ubuntu
+
+# All relative paths in main.py (models/, logs/, state_snapshot.json, config/)
+# resolve from here.
+WorkingDirectory=/opt/regime-trader
+
+# Inject credentials — values set here override the .env file
+EnvironmentFile=/opt/regime-trader/.env
+
+# The live trading command.  Remove --dry-run once you are happy with paper signals.
+ExecStart=/opt/regime-trader/venv/bin/python main.py live
+
+# Graceful stop: send SIGTERM, wait 60 s, then SIGKILL
+KillMode=mixed
+TimeoutStopSec=60
+
+# ── Restart policy ────────────────────────────────────────────────────────────
+# Restart only on crash (non-zero exit).  A clean SIGTERM shutdown is NOT restarted.
+Restart=on-failure
+RestartSec=30s
+
+# If it crashes 5 times within 5 minutes, stop trying (prevents thrashing).
+StartLimitIntervalSec=300s
+StartLimitBurst=5
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+# All stdout/stderr goes to the systemd journal.
+# View with:  journalctl -u regime-trader -f
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=regime-trader
+
+[Install]
+WantedBy=multi-user.target

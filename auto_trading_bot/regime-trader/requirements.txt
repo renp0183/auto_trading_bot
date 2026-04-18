@@ -1,0 +1,36 @@
+# HMM Regime-Based Trading Bot — Dependencies
+
+# Hidden Markov Model
+hmmlearn>=0.3.0
+
+# Alpaca broker APIs
+alpaca-trade-api>=3.0.0
+alpaca-py>=0.8.0
+
+# Data & numerics
+pandas>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Technical analysis
+ta>=0.10.0
+
+# Machine learning utilities
+scikit-learn>=1.3.0
+
+# Configuration
+pyyaml>=6.0
+python-dotenv>=1.0.0
+pytz>=2023.3
+
+# WebSocket streaming
+websocket-client>=1.6.0
+
+# Task scheduling
+schedule>=1.2.0
+
+# Terminal dashboard
+rich>=13.0.0
+
+# Web dashboard
+flask>=3.0.0
